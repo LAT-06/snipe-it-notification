@@ -1,0 +1,12 @@
+aws_region           = "ap-southeast-1"
+project_name         = "snipeit-notification"
+
+snipeit_base_url     = "https://your-snipeit.example.com"
+snipeit_api_token    = "replace-with-snipeit-api-token"
+google_chat_webhook  = "https://chat.googleapis.com/v1/spaces/..."
+
+# Monday 09:00 ICT = Monday 02:00 UTC
+weekly_schedule_expression = "cron(0 2 ? * MON *)"
+
+deployed_status_names = ["Deployed", "In Use"]
+available_status_names = ["Ready", "Available"]

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.6">
+  <diagram name="Sequence Diagram - Snipe-IT Automation" id="kDfCYD8aH7fQp1kUmfi0">
+    <mxGraphModel dx="2296" dy="1246" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-23" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="Google Sheet" vertex="1">
+          <mxGeometry height="850" width="120" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-24" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="Apps Script" vertex="1">
+          <mxGeometry height="850" width="120" x="200" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-25" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="API Gateway" vertex="1">
+          <mxGeometry height="850" width="120" x="360" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-26" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="Lambda import_handler" vertex="1">
+          <mxGeometry height="850" width="140" x="520" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-27" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="AWS Secrets Manager" vertex="1">
+          <mxGeometry height="850" width="140" x="700" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-28" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="Snipe-IT API" vertex="1">
+          <mxGeometry height="850" width="140" x="880" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-29" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="Google Chat Webhook" vertex="1">
+          <mxGeometry height="850" width="160" x="1060" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-30" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="EventBridge" vertex="1">
+          <mxGeometry height="850" width="140" x="1260" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-31" parent="1" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;" value="Lambda weekly_report" vertex="1">
+          <mxGeometry height="850" width="160" x="1440" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-32" edge="1" parent="1" style="endArrow=block;html=1;" value="Click: Sync sheet">
+          <mxGeometry relative="1" x="0.0008" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="100.00043478260852" y="160" as="sourcePoint" />
+            <mxPoint x="259.87" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-33" edge="1" parent="1" style="endArrow=block;html=1;" value="POST /import (x-api-key)">
+          <mxGeometry relative="1" x="0.0054" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="259.6304347826085" y="200" as="sourcePoint" />
+            <mxPoint x="419.5" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-34" edge="1" parent="1" style="endArrow=block;html=1;" value="Invoke Lambda">
+          <mxGeometry relative="1" x="-0.0537" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="419.6304347826085" y="220" as="sourcePoint" />
+            <mxPoint x="589.5" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-35" edge="1" parent="1" style="endArrow=block;html=1;strokeColor=#FF8000;fontColor=#FF8000;" value="Get Secret (Token, Webhook)">
+          <mxGeometry relative="1" x="0.0048" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="589.6304347826085" y="440" as="sourcePoint" />
+            <mxPoint x="769.5" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-36" edge="1" parent="1" source="tcjiJuzVbQMyEilc0Dw6-27" style="endArrow=block;html=1;dashed=1;strokeColor=#FF8000;fontColor=#FF8000;" target="tcjiJuzVbQMyEilc0Dw6-26" value="Return Secrets">
+          <mxGeometry relative="1" x="-0.0048" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="710" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-37" edge="1" parent="1" style="endArrow=block;html=1;" value="Import assets (using Token)">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="590.0604347826085" y="360" as="sourcePoint" />
+            <mxPoint x="949.93" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-38" edge="1" parent="1" style="endArrow=block;html=1;dashed=1;" value="Optional checkout">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="590.0604347826085" y="310" as="sourcePoint" />
+            <mxPoint x="949.93" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-39" edge="1" parent="1" style="endArrow=block;html=1;" value="Send summary (using Webhook)">
+          <mxGeometry relative="1" x="0.0184" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="590.0004347826085" y="260" as="sourcePoint" />
+            <mxPoint x="1139.87" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-40" edge="1" parent="1" source="tcjiJuzVbQMyEilc0Dw6-30" style="endArrow=block;html=1;" target="tcjiJuzVbQMyEilc0Dw6-31" value="Weekly cron trigger">
+          <mxGeometry relative="1" x="0.0572" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="1430" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-41" edge="1" parent="1" style="endArrow=block;html=1;strokeColor=#FF8000;fontColor=#FF8000;" value="Get Secret (Token, Webhook)">
+          <mxGeometry relative="1" x="0.0122" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="1519.5" y="530" as="sourcePoint" />
+            <mxPoint x="769.6304347826085" y="530" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-42" edge="1" parent="1" style="endArrow=block;html=1;dashed=1;strokeColor=#FF8000;fontColor=#FF8000;" value="Return Secrets">
+          <mxGeometry relative="1" y="-10" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="765.0604347826085" y="480" as="sourcePoint" />
+            <mxPoint x="1514.93" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-43" edge="1" parent="1" style="endArrow=block;html=1;" value="Fetch status report">
+          <mxGeometry relative="1" x="0.016" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="1519.5" y="570" as="sourcePoint" />
+            <mxPoint x="949.6304347826085" y="570" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="tcjiJuzVbQMyEilc0Dw6-44" edge="1" parent="1" style="endArrow=block;html=1;" value="Send weekly report">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" />
+            <mxPoint x="1519.93" y="620" as="sourcePoint" />
+            <mxPoint x="1140.0604347826086" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

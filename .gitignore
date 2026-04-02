@@ -1,0 +1,69 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Environment / secrets
+# =========================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# =========================
+# Logs / temp
+# =========================
+*.log
+*.tmp
+*.temp
+*.bak
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# =========================
+# Terraform
+# =========================
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local variable files (sensitive)
+*.tfvars
+*.auto.tfvars
+
+# Keep example files committed
+!terraform/terraform.tfvars.example
+
+# =========================
+# Build artifacts
+# =========================
+build/
+*.zip
+
+# =========================
+# Node (if used later)
+# =========================
+node_modules/

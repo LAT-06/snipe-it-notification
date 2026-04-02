@@ -1,0 +1,107 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LambdaManageProjectFunctions",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:ListTags"
+      ],
+      "Resource": "arn:aws:lambda:<AWS_REGION>:<ACCOUNT_ID>:function:<PROJECT_NAME>-*"
+    },
+    {
+      "Sid": "ApiGatewayManageRestApi",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:PATCH",
+        "apigateway:DELETE"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:<AWS_REGION>::/restapis",
+        "arn:aws:apigateway:<AWS_REGION>::/restapis/*",
+        "arn:aws:apigateway:<AWS_REGION>::/apikeys",
+        "arn:aws:apigateway:<AWS_REGION>::/apikeys/*",
+        "arn:aws:apigateway:<AWS_REGION>::/usageplans",
+        "arn:aws:apigateway:<AWS_REGION>::/usageplans/*",
+        "arn:aws:apigateway:<AWS_REGION>::/usageplans/*/keys",
+        "arn:aws:apigateway:<AWS_REGION>::/usageplans/*/keys/*"
+      ]
+    },
+    {
+      "Sid": "EventsManageWeeklyRule",
+      "Effect": "Allow",
+      "Action": [
+        "events:PutRule",
+        "events:DeleteRule",
+        "events:DescribeRule",
+        "events:PutTargets",
+        "events:RemoveTargets",
+        "events:ListTargetsByRule",
+        "events:TagResource",
+        "events:UntagResource"
+      ],
+      "Resource": "arn:aws:events:<AWS_REGION>:<ACCOUNT_ID>:rule/<PROJECT_NAME>-weekly-report"
+    },
+    {
+      "Sid": "SecretsManagerRuntimeBundle",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:CreateSecret",
+        "secretsmanager:DeleteSecret",
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:PutSecretValue",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:TagResource",
+        "secretsmanager:UntagResource",
+        "secretsmanager:ListSecretVersionIds"
+      ],
+      "Resource": "arn:aws:secretsmanager:<AWS_REGION>:<ACCOUNT_ID>:secret:<PROJECT_NAME>/runtime*"
+    },
+    {
+      "Sid": "IamManageProjectLambdaRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/<PROJECT_NAME>-lambda-role"
+    },
+    {
+      "Sid": "PassProjectLambdaRoleToLambda",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::<ACCOUNT_ID>:role/<PROJECT_NAME>-lambda-role",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
