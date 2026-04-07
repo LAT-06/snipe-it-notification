@@ -4,7 +4,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import boto3
@@ -280,10 +280,44 @@ class SnipeITClient:
         total, counts, _ = self.fetch_asset_status_details()
         return total, counts
 
-    def fetch_asset_status_details(self) -> Tuple[int, Dict[str, int], Dict[str, List[str]]]:
+    @staticmethod
+    def _extract_datetime(value: object) -> Optional[datetime]:
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            for key in ("datetime", "date", "value", "formatted"):
+                parsed = SnipeITClient._extract_datetime(value.get(key))
+                if parsed is not None:
+                    return parsed
+            return None
+
+        raw = str(value).strip()
+        if not raw:
+            return None
+
+        normalized = raw.replace("Z", "+00:00")
+        try:
+            parsed = datetime.fromisoformat(normalized)
+            if parsed.tzinfo is not None:
+                return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return parsed
+        except ValueError:
+            pass
+
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(raw, fmt)
+            except ValueError:
+                pass
+
+        return None
+
+    def fetch_asset_status_details(self) -> Tuple[int, Dict[str, int], Dict[str, List[Dict[str, str]]]]:
         rows = self._paginate_rows("/api/v1/hardware")
         counts: Dict[str, int] = {}
-        asset_tags_by_status: Dict[str, List[str]] = {}
+        asset_tags_by_status: Dict[str, List[Dict[str, str]]] = {}
+        now_utc = datetime.utcnow()
 
         for row in rows:
             status_obj = row.get("status_label") or {}
@@ -292,13 +326,29 @@ class SnipeITClient:
 
             asset_tag = str(row.get("asset_tag", "")).strip()
             if asset_tag:
-                asset_tags_by_status.setdefault(status_name, []).append(asset_tag)
+                asset_id = self._extract_int(row.get("id"))
+                asset_url = f"{self.base_url}/hardware/{asset_id}" if asset_id else ""
+
+                updated_at = self._extract_datetime(row.get("updated_at"))
+                hold_days = ""
+                if "in hold" in status_name.lower() and updated_at is not None:
+                    days = max(0, int((now_utc - updated_at).total_seconds() // 86400))
+                    hold_days = str(days)
+
+                asset_tags_by_status.setdefault(status_name, []).append(
+                    {
+                        "asset_tag": asset_tag,
+                        "asset_url": asset_url,
+                        "updated_at": updated_at.isoformat() if updated_at else "",
+                        "hold_days": hold_days,
+                    }
+                )
 
         total = sum(counts.values())
 
         # Keep deterministic ordering for message output.
         for status_name in asset_tags_by_status:
-            asset_tags_by_status[status_name].sort()
+            asset_tags_by_status[status_name].sort(key=lambda item: item.get("asset_tag", ""))
 
         return total, counts, asset_tags_by_status
 
@@ -494,7 +544,7 @@ def build_report_text(
     status_counts: Dict[str, int],
     deployed_status_names: List[str],
     available_status_names: List[str],
-    detailed_asset_tags_by_status: Optional[Dict[str, List[str]]] = None,
+    detailed_asset_tags_by_status: Optional[Dict[str, List[Dict[str, str]]]] = None,
     status_detail_exclude_names: Optional[List[str]] = None,
     max_asset_tags_per_status: int = 20,
     extra_lines: Optional[List[str]] = None,
@@ -529,16 +579,35 @@ def build_report_text(
                 if status_name.strip().lower() in excluded:
                     continue
 
-                tags = detailed_asset_tags_by_status.get(status_name, [])
-                if not tags:
+                assets = detailed_asset_tags_by_status.get(status_name, [])
+                if not assets:
                     continue
 
                 lines.append(f"  - {status_name}: {count}")
-                shown = tags[:max_asset_tags_per_status]
-                for asset_tag in shown:
-                    lines.append(f"    - {asset_tag}")
+                shown = assets[:max_asset_tags_per_status]
+                for asset in shown:
+                    asset_tag = asset.get("asset_tag", "")
+                    if not asset_tag:
+                        continue
 
-                remaining = len(tags) - len(shown)
+                    asset_url = asset.get("asset_url", "")
+                    item_text = f"<{asset_url}|{asset_tag}>" if asset_url else asset_tag
+
+                    if "in hold" in status_name.strip().lower():
+                        hold_days = asset.get("hold_days", "")
+                        updated_at = asset.get("updated_at", "")
+                        hold_parts: List[str] = []
+                        if hold_days:
+                            hold_parts.append(f"in hold {hold_days} day(s)")
+                        if updated_at:
+                            hold_parts.append(f"updated at {updated_at}")
+
+                        if hold_parts:
+                            item_text = f"{item_text} ({'; '.join(hold_parts)})"
+
+                    lines.append(f"    - {item_text}")
+
+                remaining = len(assets) - len(shown)
                 if remaining > 0:
                     lines.append(f"    - ... and {remaining} more")
 
