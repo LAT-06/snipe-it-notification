@@ -67,3 +67,6 @@ build/
 # Node (if used later)
 # =========================
 node_modules/
+
+docs/code-review/2026-04-07-codebase-security-review.md
+docs/code-review/

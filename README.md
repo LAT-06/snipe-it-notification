@@ -18,6 +18,7 @@ Main paths:
 - `POST /manufacturers-sync` -> manufacturers sync (`manufacturers_sync_handler`)
 - `POST /statuslabels-sync` -> status labels sync (`statuslabels_sync_handler`)
 - `POST /suppliers-sync` -> suppliers sync (`suppliers_sync_handler`)
+- `POST /asset-events` -> Snipe-IT asset event webhook (`asset_event_handler`)
 - EventBridge weekly cron -> `weekly_report`
 
 ## 2) One-Command Infra Deploy
@@ -88,7 +89,23 @@ After apply, these outputs are available:
 - `manufacturers_sync_api_url`
 - `statuslabels_sync_api_url`
 - `suppliers_sync_api_url`
+- `asset_events_api_url`
 - `api_key_id`
+
+## 3.1) Snipe-IT Asset Event Webhook
+
+Use the API output `asset_events_api_url` as webhook URL in Snipe-IT.
+
+Behavior:
+
+- Receives edit/change webhook events from Snipe-IT (status changes, assignment changes, check-in/out, delete)
+- Sends event lines to Google Chat, for example:
+   - `DX0086 in hold -> deployed (unassigned)`
+   - `DX0086 (unassigned) -> assign to user@example.com`
+- Appends the same current summary block used in reports:
+   - total/deployed/available
+   - by status + detailed assets by status
+   - warranty/replacement sections
 
 ## 4) APILib Setup (Shared Apps Script Library)
 

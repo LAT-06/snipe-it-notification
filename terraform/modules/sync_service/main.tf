@@ -24,7 +24,7 @@ resource "aws_api_gateway_method" "post" {
   resource_id      = aws_api_gateway_resource.this.id
   http_method      = "POST"
   authorization    = "NONE"
-  api_key_required = true
+  api_key_required = var.api_key_required
 }
 
 resource "aws_api_gateway_integration" "lambda_proxy" {

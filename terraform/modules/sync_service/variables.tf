@@ -54,3 +54,8 @@ variable "execution_arn" {
 variable "lambda_permission_statement_id" {
   type = string
 }
+
+variable "api_key_required" {
+  type    = bool
+  default = true
+}

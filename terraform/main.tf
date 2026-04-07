@@ -183,6 +183,25 @@ module "suppliers_sync" {
   lambda_permission_statement_id = "AllowExecutionFromApiGatewaySuppliersSync"
 }
 
+module "asset_event" {
+  source = "./modules/sync_service"
+
+  function_name                  = "${var.project_name}-asset-event-handler"
+  role_arn                       = module.iam.role_arn
+  handler                        = "asset_event_handler.lambda_handler"
+  filename                       = data.archive_file.lambda_zip.output_path
+  source_code_hash               = data.archive_file.lambda_zip.output_base64sha256
+  timeout                        = 120
+  memory_size                    = 512
+  environment                    = local.common_env
+  rest_api_id                    = aws_api_gateway_rest_api.import_api.id
+  root_resource_id               = aws_api_gateway_rest_api.import_api.root_resource_id
+  path_part                      = "asset-events"
+  execution_arn                  = aws_api_gateway_rest_api.import_api.execution_arn
+  lambda_permission_statement_id = "AllowExecutionFromApiGatewayAssetEvents"
+  api_key_required               = false
+}
+
 module "weekly_report" {
   source = "./modules/weekly_report"
 
@@ -213,6 +232,7 @@ resource "aws_api_gateway_deployment" "import_api" {
       module.manufacturers_sync.resource_id,
       module.statuslabels_sync.resource_id,
       module.suppliers_sync.resource_id,
+      module.asset_event.resource_id,
       module.import_sync.method_id,
       module.users_sync.method_id,
       module.categories_sync.method_id,
@@ -220,6 +240,7 @@ resource "aws_api_gateway_deployment" "import_api" {
       module.manufacturers_sync.method_id,
       module.statuslabels_sync.method_id,
       module.suppliers_sync.method_id,
+      module.asset_event.method_id,
       module.import_sync.integration_id,
       module.users_sync.integration_id,
       module.categories_sync.integration_id,
@@ -227,6 +248,7 @@ resource "aws_api_gateway_deployment" "import_api" {
       module.manufacturers_sync.integration_id,
       module.statuslabels_sync.integration_id,
       module.suppliers_sync.integration_id,
+      module.asset_event.integration_id,
     ]))
   }
 

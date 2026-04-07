@@ -280,6 +280,38 @@ class SnipeITClient:
         total, counts, _ = self.fetch_asset_status_details()
         return total, counts
 
+    def fetch_asset_event_context(self, asset_id: int) -> Dict[str, str]:
+        data = self._request("GET", f"/api/v1/hardware/{asset_id}")
+        payload = data.get("payload") if isinstance(data, dict) else None
+        if not isinstance(payload, dict):
+            return {}
+
+        asset_tag = str(payload.get("asset_tag", "")).strip()
+
+        status_name = ""
+        status_obj = payload.get("status_label")
+        if isinstance(status_obj, dict):
+            status_name = str(status_obj.get("name", "")).strip()
+        elif status_obj is not None:
+            status_name = str(status_obj).strip()
+
+        assignee = ""
+        assigned_obj = payload.get("assigned_to")
+        if isinstance(assigned_obj, dict):
+            assignee = (
+                str(assigned_obj.get("name", "")).strip()
+                or str(assigned_obj.get("username", "")).strip()
+                or str(assigned_obj.get("email", "")).strip()
+            )
+        elif assigned_obj is not None:
+            assignee = str(assigned_obj).strip()
+
+        return {
+            "asset_tag": asset_tag,
+            "status": status_name,
+            "assignee": assignee,
+        }
+
     @staticmethod
     def _extract_datetime(value: object) -> Optional[datetime]:
         if value is None:

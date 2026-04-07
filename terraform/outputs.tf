@@ -26,6 +26,10 @@ output "suppliers_sync_api_url" {
   value = "${aws_api_gateway_stage.prod.invoke_url}/suppliers-sync"
 }
 
+output "asset_events_api_url" {
+  value = "${aws_api_gateway_stage.prod.invoke_url}/asset-events"
+}
+
 output "api_key_id" {
   value = aws_api_gateway_api_key.import_key.id
 }
