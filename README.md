@@ -43,6 +43,8 @@ API_STAGE_NAME=prod
 WEEKLY_SCHEDULE_EXPRESSION=cron(0 2 ? * MON *)
 DEPLOYED_STATUS_NAMES=Deployed,In Use
 AVAILABLE_STATUS_NAMES=Ready,Available
+ASSET_REPLACEMENT_AGE_YEARS=3
+WARRANTY_EXPIRY_LOOKAHEAD_DAYS=30
 USER_DEFAULT_PASSWORD=ChangeMe@123456
 ```
 
@@ -69,6 +71,11 @@ Secrets model:
    - `snipeit_api_token`
    - `google_chat_webhook`
    - `user_default_password`
+
+Notification policy variables:
+
+- `ASSET_REPLACEMENT_AGE_YEARS`: age threshold for replacement candidates (deployed assets only)
+- `WARRANTY_EXPIRY_LOOKAHEAD_DAYS`: lookahead window for warranty-expiring alerts
 
 ## 3) Terraform Outputs You Need
 

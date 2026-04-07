@@ -38,6 +38,16 @@ variable "available_status_names" {
   default = ["Ready", "Available"]
 }
 
+variable "asset_replacement_age_years" {
+  type    = number
+  default = 3
+}
+
+variable "warranty_expiry_lookahead_days" {
+  type    = number
+  default = 30
+}
+
 variable "weekly_schedule_expression" {
   type    = string
   default = "cron(0 2 ? * MON *)"

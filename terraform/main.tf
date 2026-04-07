@@ -1,8 +1,10 @@
 locals {
   common_env = {
-    SECRETS_BUNDLE_ID      = aws_secretsmanager_secret.runtime_bundle.arn
-    DEPLOYED_STATUS_NAMES  = join(",", var.deployed_status_names)
-    AVAILABLE_STATUS_NAMES = join(",", var.available_status_names)
+    SECRETS_BUNDLE_ID               = aws_secretsmanager_secret.runtime_bundle.arn
+    DEPLOYED_STATUS_NAMES           = join(",", var.deployed_status_names)
+    AVAILABLE_STATUS_NAMES          = join(",", var.available_status_names)
+    ASSET_REPLACEMENT_AGE_YEARS     = tostring(var.asset_replacement_age_years)
+    WARRANTY_EXPIRY_LOOKAHEAD_DAYS  = tostring(var.warranty_expiry_lookahead_days)
   }
 }
 

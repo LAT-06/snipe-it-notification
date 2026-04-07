@@ -4,7 +4,7 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
 
 import boto3
@@ -144,6 +144,8 @@ class SnipeITClient:
         serial = str(row.get("Serial Number", "")).strip()
         purchase_date = str(row.get("Purchase Date", "")).strip()
         purchase_cost = self._normalize_purchase_cost(str(row.get("Purchase Cost", "")).strip())
+        warranty_months = self._normalize_warranty_months(str(row.get("Warranty", "")).strip())
+        eol_date = self._normalize_date_for_payload(str(row.get("EOL Date", "")).strip())
         notes = str(row.get("Asset Notes", "")).strip()
         name = str(row.get("Name", "")).strip() or asset_tag
 
@@ -158,6 +160,8 @@ class SnipeITClient:
             "name": name,
             "purchase_date": purchase_date if purchase_date else None,
             "purchase_cost": purchase_cost if purchase_cost else None,
+            "warranty_months": warranty_months,
+            "eol": eol_date,
             "notes": notes if notes else None,
         }
 
@@ -174,6 +178,31 @@ class SnipeITClient:
         asset_id = int(data["payload"]["id"])
         created_asset_tag = str(data["payload"].get("asset_tag", asset_tag))
         return asset_id, created_asset_tag
+
+    @staticmethod
+    def _normalize_warranty_months(raw_value: str) -> Optional[int]:
+        value = raw_value.strip().lower()
+        if not value:
+            return None
+
+        digits = re.sub(r"[^0-9]", "", value)
+        if digits:
+            months = int(digits)
+            return months if months > 0 else None
+
+        return None
+
+    @staticmethod
+    def _normalize_date_for_payload(raw_value: str) -> Optional[str]:
+        value = raw_value.strip()
+        if not value:
+            return None
+
+        parsed = SnipeITClient._extract_date(value)
+        if parsed is None:
+            return None
+
+        return parsed.isoformat()
 
     @staticmethod
     def _normalize_purchase_cost(raw_value: str) -> Optional[str]:
@@ -248,16 +277,208 @@ class SnipeITClient:
         return data.get("status") == "success"
 
     def fetch_asset_status_counts(self) -> Tuple[int, Dict[str, int]]:
+        total, counts, _ = self.fetch_asset_status_details()
+        return total, counts
+
+    def fetch_asset_status_details(self) -> Tuple[int, Dict[str, int], Dict[str, List[str]]]:
         rows = self._paginate_rows("/api/v1/hardware")
         counts: Dict[str, int] = {}
+        asset_tags_by_status: Dict[str, List[str]] = {}
 
         for row in rows:
             status_obj = row.get("status_label") or {}
             status_name = str(status_obj.get("name", "Unknown")).strip() or "Unknown"
             counts[status_name] = counts.get(status_name, 0) + 1
 
+            asset_tag = str(row.get("asset_tag", "")).strip()
+            if asset_tag:
+                asset_tags_by_status.setdefault(status_name, []).append(asset_tag)
+
         total = sum(counts.values())
-        return total, counts
+
+        # Keep deterministic ordering for message output.
+        for status_name in asset_tags_by_status:
+            asset_tags_by_status[status_name].sort()
+
+        return total, counts, asset_tags_by_status
+
+    @staticmethod
+    def _extract_date(value: object) -> Optional[date]:
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            for key in ("date", "datetime", "value", "formatted"):
+                parsed = SnipeITClient._extract_date(value.get(key))
+                if parsed is not None:
+                    return parsed
+            return None
+
+        raw = str(value).strip()
+        if not raw:
+            return None
+
+        # Normalize common ISO format variants.
+        if "T" in raw:
+            raw = raw.split("T", 1)[0]
+
+        for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(raw, fmt).date()
+            except ValueError:
+                pass
+
+        match = re.search(r"(\d{4}-\d{2}-\d{2})", raw)
+        if match:
+            try:
+                return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+            except ValueError:
+                return None
+
+        return None
+
+    @staticmethod
+    def _extract_assignee_text(row: dict) -> str:
+        assigned_to = row.get("assigned_to")
+        if isinstance(assigned_to, dict):
+            for key in ("name", "username", "email"):
+                value = str(assigned_to.get(key, "")).strip()
+                if value:
+                    return value
+            return ""
+
+        if assigned_to is not None:
+            value = str(assigned_to).strip()
+            if value:
+                return value
+
+        checkout_to = row.get("checkout_to")
+        if isinstance(checkout_to, dict):
+            for key in ("name", "username", "email"):
+                value = str(checkout_to.get(key, "")).strip()
+                if value:
+                    return value
+
+        return ""
+
+    @staticmethod
+    def _extract_int(value: object) -> Optional[int]:
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            for key in ("value", "raw", "formatted"):
+                extracted = SnipeITClient._extract_int(value.get(key))
+                if extracted is not None:
+                    return extracted
+            return None
+
+        raw = str(value).strip()
+        if not raw:
+            return None
+
+        digits = re.sub(r"[^0-9]", "", raw)
+        if not digits:
+            return None
+
+        result = int(digits)
+        return result if result > 0 else None
+
+    @staticmethod
+    def _add_months(start_date: date, months: int) -> date:
+        year = start_date.year + (start_date.month - 1 + months) // 12
+        month = (start_date.month - 1 + months) % 12 + 1
+        month_lengths = [
+            31,
+            29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+            31,
+            30,
+            31,
+            30,
+            31,
+            31,
+            30,
+            31,
+            30,
+            31,
+        ]
+        day = min(start_date.day, month_lengths[month - 1])
+        return date(year, month, day)
+
+    def fetch_asset_lifecycle_alerts(
+        self,
+        *,
+        deployed_status_names: List[str],
+        replacement_age_years: int,
+        warranty_expiry_lookahead_days: int,
+        today: Optional[date] = None,
+    ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]], List[Dict[str, str]]]:
+        rows = self._paginate_rows("/api/v1/hardware")
+        today = today or datetime.utcnow().date()
+
+        deployed_set = {name.strip().lower() for name in deployed_status_names if name.strip()}
+        warranty_due: List[Dict[str, str]] = []
+        warranty_expired: List[Dict[str, str]] = []
+        replacement_due: List[Dict[str, str]] = []
+
+        for row in rows:
+            status_obj = row.get("status_label") or {}
+            status_name = str(status_obj.get("name", "Unknown")).strip() or "Unknown"
+            status_l = status_name.lower()
+
+            asset_tag = str(row.get("asset_tag", "")).strip() or f"ID-{row.get('id', 'N/A')}"
+            assignee = self._extract_assignee_text(row)
+
+            warranty_date = self._extract_date(row.get("warranty_expires"))
+            if warranty_date is None:
+                purchase_date_for_warranty = self._extract_date(row.get("purchase_date"))
+                warranty_months = self._extract_int(row.get("warranty_months"))
+                if purchase_date_for_warranty is not None and warranty_months is not None:
+                    warranty_date = self._add_months(purchase_date_for_warranty, warranty_months)
+
+            if warranty_date is not None:
+                days_left = (warranty_date - today).days
+                if 0 <= days_left <= warranty_expiry_lookahead_days:
+                    warranty_due.append(
+                        {
+                            "asset_tag": asset_tag,
+                            "status": status_name,
+                            "warranty_date": warranty_date.isoformat(),
+                            "days_left": str(days_left),
+                            "assignee": assignee,
+                        }
+                    )
+                elif days_left < 0:
+                    warranty_expired.append(
+                        {
+                            "asset_tag": asset_tag,
+                            "status": status_name,
+                            "warranty_date": warranty_date.isoformat(),
+                            "days_overdue": str(abs(days_left)),
+                            "assignee": assignee,
+                        }
+                    )
+
+            purchase_date = self._extract_date(row.get("purchase_date"))
+            if purchase_date is None:
+                continue
+
+            age_years = (today - purchase_date).days / 365.25
+            if age_years >= float(replacement_age_years) and status_l in deployed_set:
+                replacement_due.append(
+                    {
+                        "asset_tag": asset_tag,
+                        "status": status_name,
+                        "purchase_date": purchase_date.isoformat(),
+                        "age_years": f"{age_years:.1f}",
+                        "assignee": assignee,
+                    }
+                )
+
+        warranty_due.sort(key=lambda item: (int(item["days_left"]), item["asset_tag"]))
+        warranty_expired.sort(key=lambda item: (-int(item["days_overdue"]), item["asset_tag"]))
+        replacement_due.sort(key=lambda item: (-float(item["age_years"]), item["asset_tag"]))
+        return warranty_due, warranty_expired, replacement_due
 
 
 def _format_pct(part: int, whole: int) -> str:
@@ -273,6 +494,9 @@ def build_report_text(
     status_counts: Dict[str, int],
     deployed_status_names: List[str],
     available_status_names: List[str],
+    detailed_asset_tags_by_status: Optional[Dict[str, List[str]]] = None,
+    status_detail_exclude_names: Optional[List[str]] = None,
+    max_asset_tags_per_status: int = 20,
     extra_lines: Optional[List[str]] = None,
 ) -> str:
     normalized = {k.lower(): v for k, v in status_counts.items()}
@@ -290,6 +514,33 @@ def build_report_text(
 
     for name, value in sorted(status_counts.items(), key=lambda kv: (-kv[1], kv[0].lower())):
         lines.append(f"  - {name}: {value}")
+
+    if detailed_asset_tags_by_status:
+        excluded = {
+            name.strip().lower()
+            for name in (status_detail_exclude_names or [])
+            if name and name.strip()
+        }
+        if excluded:
+            lines.append("")
+            lines.append("- Detailed assets by status:")
+
+            for status_name, count in sorted(status_counts.items(), key=lambda kv: (-kv[1], kv[0].lower())):
+                if status_name.strip().lower() in excluded:
+                    continue
+
+                tags = detailed_asset_tags_by_status.get(status_name, [])
+                if not tags:
+                    continue
+
+                lines.append(f"  - {status_name}: {count}")
+                shown = tags[:max_asset_tags_per_status]
+                for asset_tag in shown:
+                    lines.append(f"    - {asset_tag}")
+
+                remaining = len(tags) - len(shown)
+                if remaining > 0:
+                    lines.append(f"    - ... and {remaining} more")
 
     if extra_lines:
         lines.append("")
@@ -314,6 +565,70 @@ def load_status_list_from_env(var_name: str, default_value: List[str]) -> List[s
     if not raw.strip():
         return default_value
     return [part.strip() for part in raw.split(",") if part.strip()]
+
+
+def load_int_from_env(var_name: str, default_value: int, min_value: int = 0) -> int:
+    raw = os.getenv(var_name, "").strip()
+    if not raw:
+        return default_value
+
+    try:
+        value = int(raw)
+    except ValueError:
+        return default_value
+
+    return max(min_value, value)
+
+
+def build_lifecycle_alert_lines(
+    *,
+    warranty_due: List[Dict[str, str]],
+    warranty_expired: List[Dict[str, str]],
+    replacement_due: List[Dict[str, str]],
+    replacement_age_years: int,
+    warranty_expiry_lookahead_days: int,
+    max_items_per_section: int = 20,
+) -> List[str]:
+    lines: List[str] = []
+
+    lines.append(f"Warranty expiring in next {warranty_expiry_lookahead_days} days: {len(warranty_due)}")
+    if warranty_due:
+        for item in warranty_due[:max_items_per_section]:
+            suffix = f" | User: {item['assignee']}" if item.get("assignee") else ""
+            lines.append(
+                f"- {item['asset_tag']} | Warranty: {item['warranty_date']} | In {item['days_left']} days | Status: {item['status']}{suffix}"
+            )
+        remaining = len(warranty_due) - min(len(warranty_due), max_items_per_section)
+        if remaining > 0:
+            lines.append(f"- ... and {remaining} more")
+
+    lines.append("")
+    lines.append(f"Warranty expired: {len(warranty_expired)}")
+    if warranty_expired:
+        for item in warranty_expired[:max_items_per_section]:
+            suffix = f" | User: {item['assignee']}" if item.get("assignee") else ""
+            lines.append(
+                f"- {item['asset_tag']} | Expired: {item['warranty_date']} | Overdue {item['days_overdue']} days | Status: {item['status']}{suffix}"
+            )
+        remaining = len(warranty_expired) - min(len(warranty_expired), max_items_per_section)
+        if remaining > 0:
+            lines.append(f"- ... and {remaining} more")
+
+    lines.append("")
+    lines.append(
+        f"Replacement candidates (>= {replacement_age_years} years, currently deployed): {len(replacement_due)}"
+    )
+    if replacement_due:
+        for item in replacement_due[:max_items_per_section]:
+            assignee = item.get("assignee") or "Unassigned"
+            lines.append(
+                f"- {item['asset_tag']} | {item['age_years']} years | User: {assignee} | Purchased: {item['purchase_date']}"
+            )
+        remaining = len(replacement_due) - min(len(replacement_due), max_items_per_section)
+        if remaining > 0:
+            lines.append(f"- ... and {remaining} more")
+
+    return lines
 
 
 def load_runtime_config() -> Dict[str, str]:

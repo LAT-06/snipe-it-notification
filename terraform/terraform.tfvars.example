@@ -10,3 +10,6 @@ weekly_schedule_expression = "cron(0 2 ? * MON *)"
 
 deployed_status_names = ["Deployed", "In Use"]
 available_status_names = ["Ready", "Available"]
+
+asset_replacement_age_years = 3
+warranty_expiry_lookahead_days = 30
